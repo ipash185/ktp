@@ -1,0 +1,156 @@
+NAME: Priyanshu Gourav
+ROLL NUMBER: 22CS10083
+
+
+PROBABILITY         #TRANSMISSIONS/#MESSAGE_SIZE
+
+0.05                2.7
+0.10                1.1
+0.15                1.7
+0.20                1.6
+0.25                2.1
+0.30                3.6
+0.40                1.7
+0.50                3.2
+
+
+DATA STRUCTURES
+
+queue:
+
+    char data[BUF_SIZE+1][MESSAGE_SIZE]:    queue of the messages (without headers)
+    int seq_no[BUF_SIZE+1]:                 queue of the sequence numbers of the respective messages in teh data array
+    int front:                              front of queue
+    int back:                               back of queue
+
+packet:
+    int isData:                             type of the packet: 0 for ack, 1 for data
+    int seqno:                              sequence number of hte packet if data packet, acknowledged sequence number if ack
+    int rwndwSize:                          size of recv window
+    char data[MESSAGE_SIZE]:                data of the packet, if data packet
+
+k_sock:
+    int occupied:                           1 if socket is occupied, 0 otherwise
+    int pid:                                pid of the process using the socket
+    uint16_t dest_port:                     destination port number in network byte order
+    uint32_t dest_ip:                       destination IP address in network byte order
+    uint16_t src_port:                      source port number in network byte order
+    uint32_t src_ip:                        source IP address in network byte order
+    queue read_buf:                         queue for storing received messages
+    queue write_buf:                        queue for storing messages to be sent
+    int sendwl:                             left edge of sender window
+    int sendwr:                             right edge of sender window
+    time_t lastSendTime[BUF_SIZE+1]:        array storing last send time for each packet
+    time_t killTime:                        time after which socket should be garbage collected
+    int recvwl:                             left edge of receiver window
+    int recvwr:                             right edge of receiver window
+    int lastRecvSeqNo:                      sequence number of last received packet
+    int nospace:                            flag indicating if receive buffer is full
+    uint8_t seq_no:                         current sequence number for sending
+    int ret:                                return value from last operation
+    int udp_fd:                             underlying UDP socket file descriptor
+
+FUNCTIONS
+
+k_socket
+Arguments:
+- domain: Address family (AF_INET)
+- type: Socket type (must be SOCK_KTP)
+- protocol: Protocol type (0)
+
+Purpose: Creates a new KTP socket, initializes shared memory and semaphores
+Returns: Socket file descriptor or -1 on error
+
+k_bind
+Arguments:
+- fd: Socket file descriptor
+- src_addr: Source address structure
+- src_addrlen: Length of source address structure
+- dest_addr: Destination address structure
+- dest_addrlen: Length of destination address structure
+
+Purpose: Binds a KTP socket to source and destination addresses
+Returns: 0 on success, -1 on error
+
+k_sendto
+Arguments:
+- fd: Socket file descriptor
+- buf: Buffer containing data to be sent
+- len: Length of data to be sent
+- flags: Socket flags
+- dest_addr: Destination address structure
+- dest_addrlen: Length of destination address structure
+
+Purpose: Sends data over a KTP socket
+Returns: Number of bytes sent or -1 on error
+
+k_recvfrom
+Arguments:
+- fd: Socket file descriptor
+- buf: Buffer to store received data
+- len: Maximum length to receive
+- flags: Receive flags (unused)
+- src_addr: Source address structure to fill
+- src_addrlen: Length of source address structure
+
+Purpose: Receives data from KTP socket
+Returns: Number of bytes received or -1 on error
+
+k_close
+Arguments:
+- fd: Socket file descriptor
+
+Purpose: Closes KTP socket and detaches from shared memory
+Returns: void
+
+dropMessage
+Arguments: None
+
+Purpose: Randomly decides whether to drop a packet (for testing)
+Returns: 1 if message should be dropped, 0 otherwise
+
+
+
+
+
+
+sendPacket
+Arguments:
+- isData: Flag indicating if packet is data (1) or ACK (0)
+- buf: Data buffer to send
+- seqno: Sequence number of packet
+- flags: Send flags
+- sock: Socket structure
+
+Purpose: Constructs and sends a packet with given parameters
+Returns: Number of bytes sent or -1 on error
+
+isData
+Arguments:
+- pkt: Packet structure
+
+Purpose: Checks if packet is data packet
+Returns: 1 if data packet, 0 if ACK
+
+dataOutOfWindow
+Arguments:
+- sock: Socket structure
+- pkt: Received packet
+
+Purpose: Checks if received data packet is within receive window
+Returns: 1 if out of window, 0 if in window
+
+receivePacket
+Arguments:
+- sock: Pointer to socket structure
+- pkt: Received packet
+
+Purpose: Processes received data packet and updates receive window
+Returns: OUT_OF_ORDER if packet out of order, send status otherwise
+
+Signal Handler
+Arguments:
+- sig: Signal number
+
+Purpose: Cleanup resources on SIGINT
+Returns: void
